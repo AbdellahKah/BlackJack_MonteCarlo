@@ -206,6 +206,6 @@ def run_monte_carlo_batch(simulations=100, rounds_per_sim=20000, initial_bankrol
     plt.grid(axis='y', alpha=0.75)
     plt.show()
 
-# Execute the Batch!
+# Execute the Batch
 # Note: 100 simulations of 20,000 rounds might take 10-20 seconds to compute.
 run_monte_carlo_batch(simulations=1000, rounds_per_sim=500, initial_bankroll=100)
