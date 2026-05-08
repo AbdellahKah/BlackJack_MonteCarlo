@@ -24,25 +24,7 @@ The simulator models a discrete-time random walk where the player's bankroll flu
 *   Python 3.x
 *   `matplotlib`
 
-To install the required dependencies, run:
-\`\`\`bash
-pip install matplotlib
-\`\`\`
 
-## Usage
-
-1. Clone the repository:
-\`\`\`bash
-git clone https://github.com/yourusername/blackjack-monte-carlo.git
-cd blackjack-monte-carlo
-\`\`\`
-
-2. Run the simulation script:
-\`\`\`bash
-python simulator.py
-\`\`\`
-
-3. The script will output the final Expected Value percentage in the console and generate a line chart showing the EV convergence over the simulated hands.
 
 ## Customization
 
