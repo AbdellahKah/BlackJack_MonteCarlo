@@ -89,14 +89,18 @@ def calculate_kelly_bet(bankroll, true_count, min_bet):
         # If no mathematical edge, bet the absolute table minimum
         return min_bet
 
-def run_simulation(hands=20000, initial_bankroll=10000):
+def run_simulation(total_rounds=50000, initial_bankroll=10000):
     bankroll = initial_bankroll
-    min_bet = 10 # Let's say a 10 MAD minimum table
+    min_bet = 10 
     
     history = [bankroll]
     shoe = CasinoShoe(num_decks=6, penetration=0.75)
     
-    for _ in range(hands):
+    hands_played = 0
+    hands_watched = 0
+    
+    for _ in range(total_rounds):
+        # Stop if we hit the risk of ruin
         if bankroll < min_bet:
             print("Bankrupt! Risk of ruin achieved.")
             break
@@ -104,14 +108,29 @@ def run_simulation(hands=20000, initial_bankroll=10000):
         if shoe.needs_shuffle():
             shoe.shuffle()
             
-        # 1. Calculate Bet Size based on True Count
+        # 1. Evaluate the True Count BEFORE betting
         true_count = shoe.get_true_count()
-        current_bet = calculate_kelly_bet(bankroll, true_count, min_bet)
         
-        # Ensure we don't bet more than we have
+        # --- THE WONGING STRATEGY ---
+        # If the True Count drops below -1.0, the player steps away from the table.
+        if true_count < -1.0:
+            hands_watched += 1
+            # We must simulate the shoe continuing to be played by other people 
+            # so the count can eventually recover. We draw 5-6 cards to simulate 
+            # a dealer and one random player playing out a hand.
+            for _ in range(6):
+                if not shoe.needs_shuffle():
+                    shoe.draw()
+            continue # Skip to the next round without betting
+        # ----------------------------
+        
+        hands_played += 1
+        
+        # 2. Calculate Bet Size (We only get here if True Count >= -1.0)
+        current_bet = calculate_kelly_bet(bankroll, true_count, min_bet)
         current_bet = min(current_bet, bankroll)
         
-        # 2. Deal Initial Cards
+        # 3. Deal Initial Cards
         player_hand = [shoe.draw(), shoe.draw()]
         dealer_hand = [shoe.draw(), shoe.draw()]
         dealer_upcard = dealer_hand[0]
@@ -119,7 +138,7 @@ def run_simulation(hands=20000, initial_bankroll=10000):
         player_bj = calculate_total(player_hand) == 21
         dealer_bj = calculate_total(dealer_hand) == 21
         
-        # 3. Resolve Blackjacks
+        # 4. Resolve Blackjacks
         if player_bj and not dealer_bj:
             bankroll += current_bet * 1.5
         elif dealer_bj and not player_bj:
@@ -127,7 +146,7 @@ def run_simulation(hands=20000, initial_bankroll=10000):
         elif player_bj and dealer_bj:
             pass # Push
         else:
-            # 4. Play out the hand
+            # 5. Play out the hand
             player_total = play_player(player_hand, dealer_upcard, shoe)
             
             if player_total > 21:
@@ -146,19 +165,21 @@ def run_simulation(hands=20000, initial_bankroll=10000):
 
     # Calculate overall ROI
     profit = bankroll - initial_bankroll
-    print(f"Hands Played: {len(history)-1}")
-    print(f"Final Bankroll: {bankroll:.2f}")
-    print(f"Total Profit: {profit:.2f}")
+    print(f"Total Casino Rounds: {total_rounds}")
+    print(f"Hands Actually Played: {hands_played}")
+    print(f"Hands Watched (Wonged Out): {hands_watched}")
+    print(f"Final Bankroll: {bankroll:.2f} MAD")
+    print(f"Total Profit: {profit:.2f} MAD")
     
     return history
 
 # --- Run and Visualize ---
 print("Running Kelly Bet Simulation...")
-bankroll_history = run_simulation(hands=50000, initial_bankroll=10000)
+bankroll_history = run_simulation(total_rounds=50000, initial_bankroll=10000)
 
 plt.figure(figsize=(10, 6))
 plt.plot(bankroll_history, color='blue', linewidth=1)
-plt.axhline(y=10000, color='red', linestyle='--', label='Starting Bankroll')
+plt.axhline(y=10000, color='red', linestyle='--', label='Starting Bbankroll_history = run_simulation(hands=50000, initial_bankroll=10000)ankroll')
 plt.title("Card Counting & Half-Kelly Bet Sizing: Bankroll Trajectory")
 plt.xlabel("Hands Played")
 plt.ylabel("Bankroll")
