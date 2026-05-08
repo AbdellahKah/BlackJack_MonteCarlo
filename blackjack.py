@@ -89,48 +89,37 @@ def calculate_kelly_bet(bankroll, true_count, min_bet):
         # If no mathematical edge, bet the absolute table minimum
         return min_bet
 
-def run_simulation(total_rounds=50000, initial_bankroll=10000):
+def run_simulation(total_rounds=50000, initial_bankroll=10000, verbose=True):
     bankroll = initial_bankroll
     min_bet = 10 
     
-    history = [bankroll]
     shoe = CasinoShoe(num_decks=6, penetration=0.75)
     
     hands_played = 0
     hands_watched = 0
     
     for _ in range(total_rounds):
-        # Stop if we hit the risk of ruin
         if bankroll < min_bet:
-            print("Bankrupt! Risk of ruin achieved.")
+            if verbose: print("Bankrupt! Risk of ruin achieved.")
             break
             
         if shoe.needs_shuffle():
             shoe.shuffle()
             
-        # 1. Evaluate the True Count BEFORE betting
         true_count = shoe.get_true_count()
         
-        # --- THE WONGING STRATEGY ---
-        # If the True Count drops below -1.0, the player steps away from the table.
+        # Wonging Strategy
         if true_count < -1.0:
             hands_watched += 1
-            # We must simulate the shoe continuing to be played by other people 
-            # so the count can eventually recover. We draw 5-6 cards to simulate 
-            # a dealer and one random player playing out a hand.
             for _ in range(6):
-                if not shoe.needs_shuffle():
-                    shoe.draw()
-            continue # Skip to the next round without betting
-        # ----------------------------
+                if not shoe.needs_shuffle(): shoe.draw()
+            continue 
         
         hands_played += 1
         
-        # 2. Calculate Bet Size (We only get here if True Count >= -1.0)
         current_bet = calculate_kelly_bet(bankroll, true_count, min_bet)
         current_bet = min(current_bet, bankroll)
         
-        # 3. Deal Initial Cards
         player_hand = [shoe.draw(), shoe.draw()]
         dealer_hand = [shoe.draw(), shoe.draw()]
         dealer_upcard = dealer_hand[0]
@@ -138,57 +127,85 @@ def run_simulation(total_rounds=50000, initial_bankroll=10000):
         player_bj = calculate_total(player_hand) == 21
         dealer_bj = calculate_total(dealer_hand) == 21
         
-        # 4. Resolve Blackjacks
         if player_bj and not dealer_bj:
             bankroll += current_bet * 1.5
         elif dealer_bj and not player_bj:
             bankroll -= current_bet
         elif player_bj and dealer_bj:
-            pass # Push
+            pass 
         else:
-            # 5. Play out the hand
             player_total = play_player(player_hand, dealer_upcard, shoe)
-            
             if player_total > 21:
-                bankroll -= current_bet # Bust
+                bankroll -= current_bet 
             else:
                 dealer_total = play_dealer(dealer_hand, shoe)
-                
                 if dealer_total > 21:
                     bankroll += current_bet
                 elif player_total > dealer_total:
                     bankroll += current_bet
                 elif player_total < dealer_total:
                     bankroll -= current_bet
-                    
-        history.append(bankroll)
 
-    # Calculate overall ROI
     profit = bankroll - initial_bankroll
-    print(f"Total Casino Rounds: {total_rounds}")
-    print(f"Hands Actually Played: {hands_played}")
-    print(f"Hands Watched (Wonged Out): {hands_watched}")
-    print(f"Final Bankroll: {bankroll:.2f} MAD")
-    print(f"Total Profit: {profit:.2f} MAD")
     
-    return history
+    if verbose:
+        print(f"Total Casino Rounds: {total_rounds}")
+        print(f"Hands Actually Played: {hands_played}")
+        print(f"Hands Watched (Wonged Out): {hands_watched}")
+        print(f"Final Bankroll: {bankroll:.2f} MAD")
+        print(f"Total Profit: {profit:.2f} MAD")
+    
+    return bankroll, profit, hands_played
 
-# --- Run and Visualize ---
-print("Running Kelly Bet Simulation...")
-bankroll_history = run_simulation(total_rounds=50000, initial_bankroll=10000)
+def run_monte_carlo_batch(simulations=100, rounds_per_sim=20000, initial_bankroll=10000):
+    print(f"Running {simulations} independent careers of {rounds_per_sim} rounds each...")
+    
+    final_bankrolls = []
+    profitable_runs = 0
+    ruined_runs = 0
+    
+    for i in range(simulations):
+        # Print progress so you know it's not frozen
+        if (i + 1) % 10 == 0:
+            print(f"Completed {i + 1}/{simulations} simulations...")
+            
+        final_bankroll, profit, _ = run_simulation(
+            total_rounds=rounds_per_sim, 
+            initial_bankroll=initial_bankroll, 
+            verbose=False # Turn off the individual prints
+        )
+        
+        final_bankrolls.append(final_bankroll)
+        
+        if final_bankroll > initial_bankroll:
+            profitable_runs += 1
+        if final_bankroll < 10: # Hit minimum bet threshold
+            ruined_runs += 1
 
-plt.figure(figsize=(10, 6))
-plt.plot(bankroll_history, color='blue', linewidth=1)
-plt.axhline(y=10000, color='red', linestyle='--', label='Starting Bbankroll_history = run_simulation(hands=50000, initial_bankroll=10000)ankroll')
-plt.title("Card Counting & Half-Kelly Bet Sizing: Bankroll Trajectory")
-plt.xlabel("Hands Played")
-plt.ylabel("Bankroll")
-plt.legend()
-plt.grid(True, alpha=0.3)
+    # Calculate Statistics
+    win_rate = (profitable_runs / simulations) * 100
+    ruin_rate = (ruined_runs / simulations) * 100
+    avg_bankroll = sum(final_bankrolls) / simulations
+    
+    print("\n--- MACRO MONTE CARLO RESULTS ---")
+    print(f"Total Simulations Run: {simulations}")
+    print(f"Win Rate (Profitable Runs): {win_rate:.2f}%")
+    print(f"Risk of Ruin (Bankruptcies): {ruin_rate:.2f}%")
+    print(f"Average Final Bankroll: {avg_bankroll:.2f} MAD")
+    
+    # Plotting the Distribution (Histogram)
+    plt.figure(figsize=(10, 6))
+    plt.hist(final_bankrolls, bins=20, color='skyblue', edgecolor='black')
+    plt.axvline(initial_bankroll, color='red', linestyle='dashed', linewidth=2, label='Starting Bankroll')
+    plt.axvline(avg_bankroll, color='green', linestyle='dashed', linewidth=2, label='Average Final Bankroll')
+    
+    plt.title(f"Distribution of Final Bankrolls over {simulations} Simulations")
+    plt.xlabel("Final Bankroll (MAD)")
+    plt.ylabel("Frequency (Number of Runs)")
+    plt.legend()
+    plt.grid(axis='y', alpha=0.75)
+    plt.show()
 
-# Use a logarithmic scale if the growth gets massive, otherwise linear is fine
-if max(bankroll_history) > 50000:
-    plt.yscale('log')
-    plt.ylabel("Bankroll (Log Scale)")
-
-plt.show()
+# Execute the Batch!
+# Note: 100 simulations of 20,000 rounds might take 10-20 seconds to compute.
+run_monte_carlo_batch(simulations=1000, rounds_per_sim=500, initial_bankroll=100)
