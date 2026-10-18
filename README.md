@@ -22,9 +22,10 @@ By simulating a physical 6-deck shoe and tracking the Hi-Lo True Count, this sim
 The baseline house edge under H17 rules is approximately **-0.72%**. As cards are drawn, the remaining composition of the deck changes. For every $+1$ increase in the True Count, the player's mathematical expectation increases by roughly **+0.50%**.
 
 ### 2. Bet Sizing via the Kelly Criterion
-To maximize the logarithm of wealth during +EV situations, the simulator calculates the optimal bet fraction $f^*$ using a simplified Kelly formula:
-$$f^* = \text{Edge}$$
-Because Full Kelly is aggressively volatile, the simulation uses a **Half-Kelly** strategy ($f^* / 2$) to smooth out variance and protect the bankroll from statistical anomalies.
+
+The implementation uses a simplified edge-based sizing rule:
+$f^* = \\text{Edge}$
+This is a modeling simplification, not a universal exact Kelly formula for Blackjack. A rigorous Kelly calculation depends on the payout structure and defensible estimates of player advantage and outcome variance. The simulator uses a **Half-Kelly** fraction to illustrate more conservative sizing; it still cannot prevent losses or drawdowns.
 
 ### 3. Risk of Ruin and Wonging
 The simulator implements **Wonging** by pausing play when the True Count falls below the configured threshold (`-1.0`). This can reduce exposure to modeled negative-expectation situations, but it does **not** eliminate risk of ruin or guarantee positive returns. Outcomes depend on the rules, edge estimates, bankroll, betting constraints, shoe penetration, variance, and randomness. Treat charts as simulation results under the selected assumptions, not as real-world guarantees.
