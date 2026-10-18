@@ -1,10 +1,10 @@
 # Quantitative Blackjack Simulator: Kelly Criterion & Risk Management (Wonging) 🎲📈
 
-A Python-based Object-Oriented numerical simulation of Blackjack designed to model card counting, dynamic bet sizing using the Kelly Criterion, and behavioral risk management to eliminate the statistical "Risk of Ruin."
+A Python-based, object-oriented Blackjack simulation for exploring card counting, edge-based bet sizing, bankroll trajectories, and risk-management strategies under configurable assumptions.
 
 ## Overview
 
-While Blackjack is often viewed purely as a casino game, it serves as an excellent sandbox for quantitative analysis and stochastic processes. This project moves beyond simple Expected Value (EV) calculations to answer a fundamental question in quantitative finance: *How do you maximize compound growth while mathematically eliminating the risk of bankruptcy?*
+Blackjack is a useful sandbox for quantitative analysis and stochastic processes. This project explores the trade-off between expected growth and bankroll risk through Monte Carlo simulation; it does not imply that any betting strategy can guarantee profits or eliminate the risk of bankruptcy.
 
 By simulating a physical 6-deck shoe and tracking the Hi-Lo True Count, this simulator applies fractional Kelly mechanics and table-selection strategies ("Wonging") to visualize the chaotic nature of variance and the necessity of strict risk management.
 
@@ -26,8 +26,8 @@ To maximize the logarithm of wealth during +EV situations, the simulator calcula
 $$f^* = \text{Edge}$$
 Because Full Kelly is aggressively volatile, the simulation uses a **Half-Kelly** strategy ($f^* / 2$) to smooth out variance and protect the bankroll from statistical anomalies.
 
-### 3. Eliminating the Risk of Ruin
-Even with perfect Kelly sizing, players face bankruptcy if forced to place table-minimum bets during the ~80% of a shoe where the casino holds the edge. This simulator implements **Wonging**—a strategy where the "player" steps away from the table when the True Count drops below `-1.0`. By refusing to play negative-expectation games, the player eliminates "minimum bet bleed" and ensures strict upward drift over large sample sizes.
+### 3. Risk of Ruin and Wonging
+The simulator implements **Wonging** by pausing play when the True Count falls below the configured threshold (`-1.0`). This can reduce exposure to modeled negative-expectation situations, but it does **not** eliminate risk of ruin or guarantee positive returns. Outcomes depend on the rules, edge estimates, bankroll, betting constraints, shoe penetration, variance, and randomness. Treat charts as simulation results under the selected assumptions, not as real-world guarantees.
 
 ## Requirements
 
@@ -43,8 +43,8 @@ pip install matplotlib
 
 1. Clone the repository:
 \`\`\`bash
-git clone https://github.com/yourusername/blackjack-quant-simulator.git
-cd blackjack-quant-simulator
+git clone https://github.com/AbdellahKah/BlackJack_MonteCarlo.git
+cd BlackJack_MonteCarlo
 \`\`\`
 
 2. Run the simulation script:
